@@ -10,6 +10,17 @@ npm-debug.log
 # ===================== #
 # Working Files - Unity #
 # ===================== #
+Assets.meta
+[Ll]ogs/
+[Aa]ssets/AssetStoreTools*
+[Bb]uild/
+[Bb]uilds/
+[Ll]ibrary/
+[Ll]ocal[Cc]ache/
+[Tt]emp/
+[Oo]bj/
+[Uu]nityGenerated/
+sysinfo.txt
 /Temp/
 /Library/
 /Packages/
@@ -18,6 +29,7 @@ npm-debug.log
 /assets/Plugins.meta
 /*.csproj
 /*.sln
+
 
 # ===================================== #
 # Visual Studio / MonoDevelop generated #
@@ -48,3 +60,25 @@ ExportedObj/
 Icon?
 ehthumbs.db
 Thumbs.db
+Assets/Plugins/Editor/JetBrains*
+[Ee]xportedObj/
+*.csproj
+*.csproj.meta
+*.sln
+*.suo
+*.userprefs
+*.pidb
+*.pidb.meta
+*.unityproj
+.vs
+.idea
+
+# =================== #
+# Miscellaneous files #
+# =================== #
+
+*.swp
+Thumbs.db
+Thumbs.db.meta
+*.blend1
+*.blend1.meta
