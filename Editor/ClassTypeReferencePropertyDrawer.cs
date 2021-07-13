@@ -4,10 +4,9 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace Aquiris.ClassTypeReference.Reflection
+namespace Aquiris.ClassTypeReference.Editor
 {
-    [CustomPropertyDrawer(typeof(ClassTypeReference))]
-    [CustomPropertyDrawer(typeof(ClassTypeConstraintAttribute), true)]
+    [CustomPropertyDrawer(typeof(ClassTypeRef)), CustomPropertyDrawer(typeof(ClassTypeConstraintAttribute), true)]
     public sealed class ClassTypeReferencePropertyDrawer : PropertyDrawer
     {
         private static int _selectionControlId;
@@ -15,10 +14,11 @@ namespace Aquiris.ClassTypeReference.Reflection
         public static Func<ICollection<Type>> ExcludedTypeCollectionGetter { get; set; }
         private static Dictionary<string, Type> _typeMap = new Dictionary<string, Type>();
         private static GUIContent _tempContent = new GUIContent();
-        private const string TYPE_REFERENCE_UPDATED = "TypeReferenceUpdated";
 
         private static readonly int _controlHint = typeof(ClassTypeReferencePropertyDrawer).GetHashCode();
         private static readonly GenericMenu.MenuFunction2 _onSelectedTypeName = OnSelectedTypeName;
+
+        private const string TYPE_REFERENCE_UPDATED = "TypeReferenceUpdated";
 
         private static List<Type> GetFilteredTypes(ClassTypeConstraintAttribute filter)
         {
@@ -221,7 +221,7 @@ namespace Aquiris.ClassTypeReference.Reflection
         private static void OnSelectedTypeName(object userData)
         {
             var selectedType = userData as Type;
-            _selectedClassRef = ClassTypeReference.GetClassRef(selectedType);
+            _selectedClassRef = ClassTypeRef.GetClassRef(selectedType);
             Event typeReferenceUpdatedEvent = EditorGUIUtility.CommandEvent(TYPE_REFERENCE_UPDATED);
             EditorWindow.focusedWindow.SendEvent(typeReferenceUpdatedEvent);
         }
