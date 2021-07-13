@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Aquiris.ClassTypeReference.Reflection
+namespace Aquiris.ClassTypeReference
 {
     public abstract class ClassTypeConstraintAttribute : PropertyAttribute
     {

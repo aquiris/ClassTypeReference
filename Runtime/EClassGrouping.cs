@@ -1,4 +1,4 @@
-﻿namespace Aquiris.ClassTypeReference.Reflection
+﻿namespace Aquiris.ClassTypeReference
 {
     public enum EClassGrouping
     {

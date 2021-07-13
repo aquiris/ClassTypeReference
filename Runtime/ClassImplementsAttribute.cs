@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Aquiris.ClassTypeReference.Reflection
+namespace Aquiris.ClassTypeReference
 {
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]
     public sealed class ClassImplementsAttribute : ClassTypeConstraintAttribute
