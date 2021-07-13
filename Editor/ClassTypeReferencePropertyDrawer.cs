@@ -1,59 +1,24 @@
-// Copyright (c) Rotorz Limited. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root.
-
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace Aquiris.ClassType.Reflection
+namespace Aquiris.ClassTypeReference.Reflection
 {
-    /// <summary>
-    /// Custom property drawer for <see cref="ClassTypeReference"/> properties.
-    /// </summary>
     [CustomPropertyDrawer(typeof(ClassTypeReference))]
     [CustomPropertyDrawer(typeof(ClassTypeConstraintAttribute), true)]
     public sealed class ClassTypeReferencePropertyDrawer : PropertyDrawer
     {
-        #region Type Filtering
-
-        /// <summary>
-        /// Gets or sets a function that returns a collection of types that are
-        /// to be excluded from drop-down. A value of <c>null</c> specifies that
-        /// no types are to be excluded.
-        /// </summary>
-        /// <remarks>
-        /// <para>This property must be set immediately before presenting a class
-        /// type reference property field using <see cref="PropertyField"/>
-        /// or <see cref="PropertyField"/> since the value of this
-        /// property is reset to <c>null</c> each time the control is drawn.</para>
-        /// <para>Since filtering makes extensive use of <see cref="Contains"/>
-        /// it is recommended to use a collection that is optimized for fast
-        /// lookups such as <see cref="HashSet{T}"/> for better performance.</para>
-        /// </remarks>
-        /// <example>
-        /// <para>Exclude a specific type from being selected:</para>
-        /// <code language="csharp"><![CDATA[
-        /// private SerializedProperty someClassTypeReferenceProperty;
-        ///
-        /// public override void OnInspectorGUI() {
-        ///     serializedObject.Update();
-        ///
-        ///     ClassTypeReferencePropertyDrawer.ExcludedTypeCollectionGetter = GetExcludedTypeCollection;
-        ///     EditorGUILayout.PropertyField(this.someClassTypeReferenceProperty);
-        ///
-        ///     serializedObject.ApplyModifiedProperties();
-        /// }
-        ///
-        /// private ICollection<Type> GetExcludedTypeCollection() {
-        ///     var set = new HashSet<Type>();
-        ///     set.Add(typeof(SpecialClassToHideInDropdown));
-        ///     return set;
-        /// }
-        /// ]]></code>
-        /// </example>
+        private static int _selectionControlId;
+        private static string _selectedClassRef;
         public static Func<ICollection<Type>> ExcludedTypeCollectionGetter { get; set; }
+        private static Dictionary<string, Type> _typeMap = new Dictionary<string, Type>();
+        private static GUIContent _tempContent = new GUIContent();
+        private const string TYPE_REFERENCE_UPDATED = "TypeReferenceUpdated";
+
+        private static readonly int _controlHint = typeof(ClassTypeReferencePropertyDrawer).GetHashCode();
+        private static readonly GenericMenu.MenuFunction2 _onSelectedTypeName = OnSelectedTypeName;
 
         private static List<Type> GetFilteredTypes(ClassTypeConstraintAttribute filter)
         {
@@ -99,30 +64,19 @@ namespace Aquiris.ClassType.Reflection
             }
         }
 
-        #endregion
-
-
-        #region Type Utility
-
-        private static Dictionary<string, Type> s_TypeMap = new Dictionary<string, Type>();
-
         private static Type ResolveType(string classRef)
         {
-            Type type;
-            if (!s_TypeMap.TryGetValue(classRef, out type)) {
-                type = !string.IsNullOrEmpty(classRef) ? Type.GetType(classRef) : null;
-                s_TypeMap[classRef] = type;
+            if (!_typeMap.TryGetValue(classRef, out Type type))
+            {
+                type = !string.IsNullOrEmpty(classRef)
+                    ? Type.GetType(classRef)
+                    : null;
+
+                _typeMap[classRef] = type;
             }
+
             return type;
         }
-
-        #endregion
-
-
-        #region Control Drawing / Event Handling
-
-        private static readonly int s_ControlHint = typeof(ClassTypeReferencePropertyDrawer).GetHashCode();
-        private static GUIContent s_TempContent = new GUIContent();
 
         private static string DrawTypeSelectionControl(Rect position, GUIContent label, string classRef, ClassTypeConstraintAttribute filter)
         {
@@ -131,38 +85,36 @@ namespace Aquiris.ClassType.Reflection
                 position = EditorGUI.PrefixLabel(position, label);
             }
 
-            int controlID = GUIUtility.GetControlID(s_ControlHint, FocusType.Keyboard, position);
-
             bool triggerDropDown = false;
-
-            switch (Event.current.GetTypeForControl(controlID))
+            int controlId = GUIUtility.GetControlID(_controlHint, FocusType.Keyboard, position);
+            switch (Event.current.GetTypeForControl(controlId))
             {
                 case EventType.ExecuteCommand:
-                    if (Event.current.commandName == "TypeReferenceUpdated")
+                    if (Event.current.commandName == TYPE_REFERENCE_UPDATED)
                     {
-                        if (s_SelectionControlID == controlID)
+                        if (_selectionControlId == controlId)
                         {
-                            if (classRef != s_SelectedClassRef)
+                            if (classRef != _selectedClassRef)
                             {
-                                classRef = s_SelectedClassRef;
+                                classRef = _selectedClassRef;
                                 GUI.changed = true;
                             }
 
-                            s_SelectionControlID = 0;
-                            s_SelectedClassRef = null;
+                            _selectionControlId = 0;
+                            _selectedClassRef = null;
                         }
                     }
                     break;
                 case EventType.MouseDown:
                     if (GUI.enabled && position.Contains(Event.current.mousePosition))
                     {
-                        GUIUtility.keyboardControl = controlID;
+                        GUIUtility.keyboardControl = controlId;
                         triggerDropDown = true;
                         Event.current.Use();
                     }
                     break;
                 case EventType.KeyDown:
-                    if (GUI.enabled && GUIUtility.keyboardControl == controlID)
+                    if (GUI.enabled && GUIUtility.keyboardControl == controlId)
                     {
                         if (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.Space)
                         {
@@ -171,30 +123,28 @@ namespace Aquiris.ClassType.Reflection
                         }
                     }
                     break;
-
                 case EventType.Repaint:
-                    // Remove assembly name from content of popup control.
                     string[] classRefParts = classRef.Split(',');
-
-                    s_TempContent.text = classRefParts[0].Trim();
-                    if (s_TempContent.text == "")
+                    _tempContent.text = classRefParts[0].Trim();
+                    if (_tempContent.text == "")
                     {
-                        s_TempContent.text = "(None)";
+                        _tempContent.text = "(None)";
                     }
                     else if (ResolveType(classRef) == null)
                     {
-                        s_TempContent.text += " {Missing}";
+                        _tempContent.text += " {Missing}";
                     }
 
-                    EditorStyles.popup.Draw(position, s_TempContent, controlID);
+                    string[] parts = _tempContent.text.Split('.');
+                    string lastWord = parts[parts.Length - 1];
+                    EditorStyles.popup.Draw(position, new GUIContent(lastWord), controlId);
                     break;
             }
 
             if (triggerDropDown)
             {
-                s_SelectionControlID = controlID;
-                s_SelectedClassRef = classRef;
-
+                _selectionControlId = controlId;
+                _selectedClassRef = classRef;
                 List<Type> filteredTypes = GetFilteredTypes(filter);
                 DisplayDropDown(position, filteredTypes, ResolveType(classRef), filter.Grouping);
             }
@@ -208,9 +158,7 @@ namespace Aquiris.ClassType.Reflection
             {
                 bool restoreShowMixedValue = EditorGUI.showMixedValue;
                 EditorGUI.showMixedValue = property.hasMultipleDifferentValues;
-
                 property.stringValue = DrawTypeSelectionControl(position, label, property.stringValue, filter);
-
                 EditorGUI.showMixedValue = restoreShowMixedValue;
             }
             finally
@@ -222,14 +170,12 @@ namespace Aquiris.ClassType.Reflection
         private static void DisplayDropDown(Rect position, List<Type> types, Type selectedType, EClassGrouping grouping)
         {
             var menu = new GenericMenu();
-
-            menu.AddItem(new GUIContent("(None)"), selectedType == null, s_OnSelectedTypeName, null);
+            menu.AddItem(new GUIContent("(None)"), selectedType == null, _onSelectedTypeName, null);
             menu.AddSeparator("");
 
             for (int i = 0; i < types.Count; ++i)
             {
                 Type type = types[i];
-
                 string menuLabel = FormatGroupedTypeName(type, grouping);
                 if (string.IsNullOrEmpty(menuLabel))
                 {
@@ -237,7 +183,7 @@ namespace Aquiris.ClassType.Reflection
                 }
 
                 var content = new GUIContent(menuLabel);
-                menu.AddItem(content, type == selectedType, s_OnSelectedTypeName, type);
+                menu.AddItem(content, type == selectedType, _onSelectedTypeName, type);
             }
 
             menu.DropDown(position);
@@ -245,22 +191,22 @@ namespace Aquiris.ClassType.Reflection
 
         private static string FormatGroupedTypeName(Type type, EClassGrouping grouping)
         {
-            string name = type.FullName;
+            string fullName = type.FullName;
             switch (grouping)
             {
                 default:
                 case EClassGrouping.None:
-                    return name;
+                    return fullName;
                 case EClassGrouping.ByNamespace:
-                    return name.Replace('.', '/');
+                    return fullName.Replace('.', '/');
                 case EClassGrouping.ByNamespaceFlat:
-                    int lastPeriodIndex = name.LastIndexOf('.');
+                    int lastPeriodIndex = fullName.LastIndexOf('.');
                     if (lastPeriodIndex != -1)
                     {
-                        name = name.Substring(0, lastPeriodIndex) + "/" + name.Substring(lastPeriodIndex + 1);
+                        fullName = $"{fullName.Substring(0, lastPeriodIndex)}/{fullName.Substring(lastPeriodIndex + 1)}";
                     }
 
-                    return name;
+                    return fullName;
                 case EClassGrouping.ByAddComponentMenu:
                     object[] addComponentMenuAttributes = type.GetCustomAttributes(typeof(AddComponentMenu), false);
                     if (addComponentMenuAttributes.Length == 1)
@@ -268,25 +214,17 @@ namespace Aquiris.ClassType.Reflection
                         return ((AddComponentMenu) addComponentMenuAttributes[0]).componentMenu;
                     }
 
-                    return "Scripts/" + type.FullName.Replace('.', '/');
+                    return $"Scripts/{type.FullName.Replace('.', '/')}";
             }
         }
-
-        private static int s_SelectionControlID;
-        private static string s_SelectedClassRef;
-
-        private static readonly GenericMenu.MenuFunction2 s_OnSelectedTypeName = OnSelectedTypeName;
 
         private static void OnSelectedTypeName(object userData)
         {
             var selectedType = userData as Type;
-
-            s_SelectedClassRef = ClassTypeReference.GetClassRef(selectedType);
-
-            Event typeReferenceUpdatedEvent = EditorGUIUtility.CommandEvent("TypeReferenceUpdated");
+            _selectedClassRef = ClassTypeReference.GetClassRef(selectedType);
+            Event typeReferenceUpdatedEvent = EditorGUIUtility.CommandEvent(TYPE_REFERENCE_UPDATED);
             EditorWindow.focusedWindow.SendEvent(typeReferenceUpdatedEvent);
         }
-        #endregion
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
