@@ -1,6 +1,8 @@
-﻿{
+{
     "name": "aquiris.class-type-reference.editor",
-    "references": [],
+    "references": [
+        "GUID:5b2886f0e47604d7e815265215b2c12a"
+    ],
     "includePlatforms": [
         "Editor"
     ],
