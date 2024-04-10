@@ -1,10 +1,9 @@
-﻿{
+{
     "name": "aquiris.class-type-reference",
+    "rootNamespace": "",
     "references": [],
     "includePlatforms": [],
-    "excludePlatforms": [
-        "WindowsStandalone32"
-    ],
+    "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
