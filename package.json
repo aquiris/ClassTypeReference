@@ -1,9 +1,9 @@
 {
   "name": "com.aquiris.class-type-reference",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "displayName": "Aquiris Class Type Reference",
   "description": "A class which provides serializable references to 'System.Type' of classes with an accompanying custom property drawer which allows class selection from drop-down.",
-  "unity": "2019.4",
+  "unity": "2021.3",
   "keywords": [
     "unity",
     "aquiris"
